@@ -4,14 +4,14 @@ import (
 	"context"
 )
 
-type transition[T any] struct {
+type transition[T any, E comparable] struct {
 	name   string
 	guards []GuardFunc[T]
-	from   []string
-	dist   string
+	from   []E
+	dist   E
 }
 
-func (t *transition[T]) IsAllowed(ctx context.Context, subject T) bool {
+func (t *transition[T, E]) IsAllowed(ctx context.Context, subject T) bool {
 	for _, g := range t.guards {
 		if g.IsAllowed(ctx, subject) {
 			continue
@@ -23,14 +23,14 @@ func (t *transition[T]) IsAllowed(ctx context.Context, subject T) bool {
 	return true
 }
 
-func (t *transition[T]) String() string {
+func (t *transition[T, E]) String() string {
 	return t.name
 }
 
-func (t *transition[T]) Dist() string {
+func (t *transition[T, E]) Dist() E {
 	return t.dist
 }
 
-func (t *transition[T]) From() []string {
+func (t *transition[T, E]) From() []E {
 	return t.from
 }

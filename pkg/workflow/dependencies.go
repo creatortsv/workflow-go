@@ -5,11 +5,11 @@ import (
 	"fmt"
 )
 
-type ReadOnlyTransition[T any] interface {
+type ReadOnlyTransition[T, E any] interface {
 	fmt.Stringer
 	Guard[T]
-	Dist() string
-	From() []string
+	Dist() E
+	From() []E
 }
 
 type (
