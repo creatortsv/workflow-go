@@ -25,3 +25,5 @@ go.work.sum
 .env
 
 .devcontainer
+*-gen.md
+workflow-go.json

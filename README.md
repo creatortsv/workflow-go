@@ -57,3 +57,31 @@ This prints
 ```shell
 State: started
 ```
+
+## Generate graph
+
+```yaml
+workflow:
+    process:
+        transitions:
+            start:
+                from: [ init ]
+                to: started
+
+            cancel:
+                from: [ started ]
+                to: canceled
+
+            complete:
+                from: [ started ]
+                to: completed
+```
+
+This will generate `mermaid` graph
+
+```mermaid
+flowchart TD
+    init(init) -->|start| started(started)
+    started(started) -->|cancel| canceled(canceled)
+    started(started) -->|complete| completed(completed)
+```
