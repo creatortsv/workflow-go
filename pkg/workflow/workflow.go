@@ -3,41 +3,17 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/creatortsv/workflow-go/pkg/state"
 )
 
+var _ Workflow[any, string] = &workflow[any, string]{}
+
 type workflow[T any, E comparable] struct {
 	sm state.Manager[T, E]
-	ts map[string]ReadOnlyTransition[T, E]
-}
-
-type withTransition[T any, E comparable] func() *transition[T, E]
-
-func New[T any, E comparable](s state.Manager[T, E]) *workflow[T, E] {
-	return &workflow[T, E]{
-		sm: s,
-		ts: map[string]ReadOnlyTransition[T, E]{},
-	}
-}
-
-func (w *workflow[T, E]) WithTransition(
-	name string,
-	dist E,
-	from []E,
-	guards ...GuardFunc[T],
-) *workflow[T, E] {
-	t := &transition[T, E]{
-		guards: guards,
-		name:   name,
-		from:   from,
-		dist:   dist,
-	}
-
-	w.ts[t.name] = t
-
-	return w
+	ts map[string]Transition[T, E]
 }
 
 func (w *workflow[T, E]) Apply(ctx context.Context, subject T, transition string) error {
@@ -45,7 +21,7 @@ func (w *workflow[T, E]) Apply(ctx context.Context, subject T, transition string
 		return fmt.Errorf("apply transition [%s]: %w", transition, ErrUnknownTransition)
 	}
 
-	t, err := w.AllowedTransitions(ctx, subject)
+	t, err := w.allowedTransitions(ctx, subject)
 	if err != nil {
 		return err
 	}
@@ -61,13 +37,26 @@ func (w *workflow[T, E]) Apply(ctx context.Context, subject T, transition string
 	return fmt.Errorf("apply transition [%s]: %w", transition, ErrForbiddenTransition)
 }
 
-func (w *workflow[T, E]) AllowedTransitions(ctx context.Context, subject T) (map[string]ReadOnlyTransition[T, E], error) {
+func (w *workflow[T, E]) State(ctx context.Context, subject T) (E, error) {
+	return w.sm.State(ctx, subject)
+}
+
+func (w *workflow[T, E]) AllowedTransitions(ctx context.Context, subject T) ([]string, error) {
+	c, err := w.allowedTransitions(ctx, subject)
+	if err != nil {
+		return nil, err
+	}
+
+	return slices.Collect(maps.Keys(c)), nil
+}
+
+func (w *workflow[T, E]) allowedTransitions(ctx context.Context, subject T) (map[string]Transition[T, E], error) {
 	s, err := w.sm.State(ctx, subject)
 	if err != nil {
 		return nil, fmt.Errorf("getting current state: %w", err)
 	}
 
-	transits := make(map[string]ReadOnlyTransition[T, E])
+	transits := make(map[string]Transition[T, E])
 	for _, t := range w.ts {
 		if !slices.Contains(t.From(), s) {
 			continue

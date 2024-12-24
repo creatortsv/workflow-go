@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type Manager[T, E any] interface {
+type Manager[T any, E comparable] interface {
 	// Returns the current state of subject
 	State(ctx context.Context, subject T) (E, error)
 

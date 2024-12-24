@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -31,7 +32,7 @@ func TestWorkflow(t *testing.T) {
 		t.Parallel()
 
 		m := &testManager{}
-		w := New(m).WithTransition("start", "started", []string{"init"})
+		w := NewBuilder(m).WithTransition("start", "started", []string{"init"}).Build()
 
 		require.Equal(t, m, w.sm)
 
@@ -46,7 +47,7 @@ func TestWorkflow(t *testing.T) {
 	t.Run("Apply: unknown transition", func(t *testing.T) {
 		t.Parallel()
 
-		err := New(&testManager{}).Apply(context.Background(), &testSubject{}, "start")
+		err := NewBuilder(&testManager{}).Build().Apply(context.Background(), &testSubject{}, "start")
 
 		require.ErrorIs(t, err, ErrUnknownTransition)
 	})
@@ -54,7 +55,7 @@ func TestWorkflow(t *testing.T) {
 	t.Run("Apply: forbidden transition by state", func(t *testing.T) {
 		t.Parallel()
 
-		w := New(&testManager{}).WithTransition("start", "started", []string{"init"})
+		w := NewBuilder(&testManager{}).WithTransition("start", "started", []string{"init"}).Build()
 
 		err := w.Apply(context.Background(), &testSubject{state: "started"}, "start")
 
@@ -64,13 +65,13 @@ func TestWorkflow(t *testing.T) {
 	t.Run("Apply: forbidden transition by guards", func(t *testing.T) {
 		t.Parallel()
 
-		w := New(&testManager{}).WithTransition(
+		w := NewBuilder(&testManager{}).WithTransition(
 			"start",
 			"started",
 			[]string{"init"},
 			func(_ context.Context, _ *testSubject) bool { return true },
 			func(_ context.Context, _ *testSubject) bool { return false },
-		)
+		).Build()
 
 		err := w.Apply(context.Background(), &testSubject{state: "init"}, "start")
 
@@ -82,12 +83,12 @@ func TestWorkflow(t *testing.T) {
 
 		subject := &testSubject{state: "init"}
 
-		w := New(&testManager{}).WithTransition(
+		w := NewBuilder(&testManager{}).WithTransition(
 			"start",
 			"started",
 			[]string{"init"},
 			func(_ context.Context, _ *testSubject) bool { return true },
-		)
+		).Build()
 
 		err := w.Apply(context.Background(), subject, "start")
 
@@ -100,17 +101,16 @@ func TestWorkflow(t *testing.T) {
 
 		subject := &testSubject{state: "init"}
 
-		w := New(&testManager{}).WithTransition(
+		w := NewBuilder(&testManager{}).WithTransition(
 			"start",
 			"started",
 			[]string{"init"},
 			func(_ context.Context, _ *testSubject) bool { return true },
-		)
+		).Build()
 
 		c, err := w.AllowedTransitions(context.Background(), subject)
-		_, ok := c["start"]
 
 		require.NoError(t, err)
-		require.True(t, ok)
+		require.True(t, slices.Contains(c, "start"))
 	})
 }

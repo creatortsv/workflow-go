@@ -5,14 +5,20 @@ import (
 	"fmt"
 )
 
-type ReadOnlyTransition[T, E any] interface {
-	fmt.Stringer
-	Guard[T]
-	Dist() E
-	From() []E
-}
-
 type (
+	Workflow[T any, E comparable] interface {
+		Apply(ctx context.Context, subject T, transition string) error
+		State(ctx context.Context, subject T) (E, error)
+		AllowedTransitions(ctx context.Context, subject T) ([]string, error)
+	}
+
+	Transition[T any, E comparable] interface {
+		Guard[T]
+		fmt.Stringer
+		Dist() E
+		From() []E
+	}
+
 	GuardFunc[T any] func(context.Context, T) bool
 	Guard[T any]     interface {
 		IsAllowed(ctx context.Context, subject T) bool
